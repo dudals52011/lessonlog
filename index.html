@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <title>레슨런</title>
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="레슨런" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-screen="loading" data-panel="note">
+  <noscript>이 앱은 자바스크립트가 필요해요.</noscript>
+
+  <!-- 시작 화면 (첫 실행) -->
+  <section class="screen screen-start" id="screen-start" hidden>
+    <div class="start-inner">
+      <h1 class="brand">레슨런</h1>
+      <p class="muted">일과 중 떠오른 레슨런을 한 줄씩 적고, 주 1회 통째로 복사해 AI와 회고하는 개인용 메모앱.</p>
+      <button class="btn btn-primary btn-lg" id="btn-start-new">새로 시작</button>
+      <button class="btn btn-text" id="btn-start-connect">기존 코드로 연결</button>
+    </div>
+  </section>
+
+  <!-- 동기화 코드 발급 -->
+  <section class="screen screen-form" id="screen-issue" hidden>
+    <header class="bar"><button class="icon-btn" id="btn-issue-back" aria-label="뒤로">←</button><h2>동기화 코드</h2><span class="icon-spacer"></span></header>
+    <div class="form-inner">
+      <div class="code-box" id="issue-code"></div>
+      <button class="btn" id="btn-issue-copy">복사</button>
+      <p class="muted small">이 코드가 곧 계정이에요. 잃어버리면 복구할 수 없어요. 다른 기기에서 연결할 때 필요해요.</p>
+      <button class="btn btn-primary btn-lg" id="btn-issue-start">시작하기</button>
+    </div>
+  </section>
+
+  <!-- 기존 코드로 연결 -->
+  <section class="screen screen-form" id="screen-enter" hidden>
+    <header class="bar"><button class="icon-btn" id="btn-enter-back" aria-label="뒤로">←</button><h2>기존 코드로 연결</h2><span class="icon-spacer"></span></header>
+    <div class="form-inner">
+      <p class="muted">다른 기기의 설정에서 동기화 코드를 복사해 붙여넣어 주세요.</p>
+      <input class="code-input" id="enter-input" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+      <p class="error small" id="enter-error" hidden></p>
+      <button class="btn btn-primary btn-lg" id="btn-enter-connect">연결</button>
+    </div>
+  </section>
+
+  <!-- 설정 -->
+  <section class="screen screen-form" id="screen-settings" hidden>
+    <header class="bar"><button class="icon-btn" id="btn-settings-back" aria-label="뒤로">←</button><h2>설정</h2><span class="icon-spacer"></span></header>
+    <div class="form-inner settings">
+      <h3 class="section-label">동기화</h3>
+      <div class="row">
+        <div class="row-main">
+          <div class="row-title">내 동기화 코드</div>
+          <div class="code-box small" id="settings-code">●●●●-●●●●-●●●●-●●●●-●●●●-●●●●</div>
+        </div>
+        <div class="row-actions">
+          <button class="btn btn-sm" id="btn-code-toggle">보기</button>
+          <button class="btn btn-sm" id="btn-code-copy">복사</button>
+        </div>
+      </div>
+      <p class="muted small">이 코드로 다른 기기에서 연결할 수 있어요. 잃어버리면 복구할 수 없어요.</p>
+
+      <h3 class="section-label">데이터</h3>
+      <button class="row row-btn" id="btn-export"><span class="row-title">전체 내보내기 (JSON)</span></button>
+
+      <h3 class="section-label">기기</h3>
+      <button class="row row-btn danger" id="btn-disconnect"><span class="row-title">이 기기 연결 해제</span></button>
+      <p class="muted small" id="settings-version"></p>
+    </div>
+  </section>
+
+  <!-- 앱 본체 -->
+  <div class="app" id="screen-app" hidden>
+    <aside class="sidebar" id="sidebar">
+      <header class="bar">
+        <button class="icon-btn narrow-only" id="btn-list-close" aria-label="닫기">✕</button>
+        <h2>노트</h2>
+        <button class="icon-btn" id="btn-settings" aria-label="설정">⚙</button>
+      </header>
+      <button class="new-note" id="btn-new-note">+ 새 노트</button>
+      <ul class="note-list" id="note-list"></ul>
+    </aside>
+
+    <main class="main" id="main">
+      <header class="bar note-bar">
+        <button class="icon-btn narrow-only" id="btn-list-open" aria-label="노트 목록">☰</button>
+        <div class="title-wrap">
+          <button class="title" id="note-title" type="button"></button>
+          <input class="title-input" id="note-title-input" hidden maxlength="60" />
+          <div class="status-line" id="status-line"></div>
+        </div>
+        <button class="icon-btn" id="btn-note-menu" aria-label="메뉴">⋯</button>
+        <button class="btn btn-text accent" id="btn-title-done" hidden>완료</button>
+      </header>
+
+      <div class="banner" id="install-banner" hidden>
+        <span>홈 화면에 추가하면 앱처럼 쓸 수 있어요</span>
+        <button class="icon-btn" id="btn-banner-close" aria-label="닫기">✕</button>
+      </div>
+
+      <div class="entries" id="entries"></div>
+
+      <div class="composer">
+        <div class="edit-bar" id="edit-bar" hidden>
+          <span>수정 중</span>
+          <button class="btn btn-text" id="btn-edit-cancel">취소</button>
+        </div>
+        <div class="composer-row">
+          <textarea id="composer" rows="1" placeholder="메모 입력..." enterkeyhint="send"></textarea>
+          <button class="send" id="btn-send" aria-label="전송">↑</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 공용: 팝오버 메뉴 / 다이얼로그 / 토스트 -->
+  <div class="popover" id="popover" hidden></div>
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="dialog" id="dialog" hidden role="dialog" aria-modal="true">
+    <h3 id="dialog-title"></h3>
+    <div id="dialog-body"></div>
+    <div class="dialog-actions" id="dialog-actions"></div>
+  </div>
+  <div class="toast" id="toast" hidden>
+    <span id="toast-text"></span>
+    <button class="btn btn-text accent" id="toast-action" hidden></button>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
