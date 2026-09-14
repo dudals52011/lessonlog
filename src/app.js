@@ -5,7 +5,8 @@ import { createSyncer, api } from './sync.js';
 import { generateCode, normalizeCode } from './core/code.js';
 import { noteToMarkdown } from './core/copy.js';
 import { formatLogDay, formatShortDay, formatTime, groupByDay } from './core/dates.js';
-import { parseMarkdown, continueListMarker, hasFormatting } from './core/markdown.js';
+import { parseMarkdown } from './core/markdown.js';
+import { createEditor } from './editor.js';
 import {
   addNote, openNote, setTitle, deleteNote, addEntry, editEntry, deleteEntry, restoreEntry,
   liveNotes, liveEntries, notePeriod, homeNoteId, displayTitle, pendingCount, exportData,
@@ -33,12 +34,17 @@ const els = {
   title: $('note-title'), titleInput: $('note-title-input'), titleDone: $('btn-title-done'),
   main: $('main'),
   noteMenu: $('btn-note-menu'), statusLine: $('status-line'), banner: $('install-banner'),
-  entries: $('entries'), composer: $('composer'), composerWrap: $('composer-wrap'), send: $('btn-send'),
+  entries: $('entries'), composerWrap: $('composer-wrap'), send: $('btn-send'),
   sendLabel: $('btn-send').querySelector('.send-label'), editBar: $('edit-bar'), editLabel: $('edit-label'),
-  preview: $('preview'), previewBody: $('preview-body'),
   popover: $('popover'), scrim: $('scrim'), dialog: $('dialog'),
   toast: $('toast'), toastText: $('toast-text'), toastAction: $('toast-action'),
 };
+// 입력창: 타이핑하는 대로 마크다운 서식이 입혀지는 에디터. 데스크톱은 Enter로 전송, 모바일은 줄바꿈.
+els.composer = createEditor($('composer'), {
+  onInput: refreshComposer,
+  onSubmit: () => submitComposer(),
+  submitOnEnter: () => isWide(),
+});
 
 // ---------- 저장 · 동기화
 
@@ -448,10 +454,10 @@ function startEdit(id) {
   els.editBar.hidden = false;
   els.sendLabel.textContent = 'SAVE';
   els.composerWrap.classList.add('editing');
-  autosize();
+  refreshComposer();
   renderNote();
   els.composer.focus();
-  els.composer.setSelectionRange(els.composer.value.length, els.composer.value.length);
+  els.composer.setSelection(els.composer.value.length);
 }
 
 function cancelEdit() {
@@ -459,7 +465,7 @@ function cancelEdit() {
   editingEntryId = null;
   els.composer.value = '';
   exitEditMode();
-  autosize();
+  refreshComposer();
   renderNote();
 }
 
@@ -480,7 +486,7 @@ function submitComposer() {
     addEntry(state, currentNoteId, text, nowIso());
   }
   els.composer.value = '';
-  autosize();
+  refreshComposer();
   commit();
   scrollToBottom();
   els.composer.focus();
@@ -499,60 +505,9 @@ function removeEntry(id) {
   });
 }
 
-function continueList() {
-  const ta = els.composer;
-  if (ta.selectionStart !== ta.selectionEnd) return false;
-  const pos = ta.selectionStart;
-  const lineStart = ta.value.lastIndexOf('\n', pos - 1) + 1;
-  const line = ta.value.slice(lineStart, pos);
-  const c = continueListMarker(line);
-  if (!c) return false;
-  if (c.clear) {
-    ta.setRangeText('', lineStart, pos, 'end');
-  } else {
-    ta.setRangeText(`\n${c.marker}`, pos, pos, 'end');
-  }
-  ta.dispatchEvent(new Event('input'));
-  return true;
-}
-
-function wrapSelection(mark) {
-  const ta = els.composer;
-  const { selectionStart: a, selectionEnd: b, value } = ta;
-  const inner = value.slice(a, b);
-  const before = value.slice(Math.max(0, a - mark.length), a);
-  const after = value.slice(b, b + mark.length);
-  if (before === mark && after === mark) {
-    // 이미 감싸져 있으면 벗긴다
-    ta.setRangeText(inner, a - mark.length, b + mark.length, 'select');
-  } else {
-    ta.setRangeText(`${mark}${inner}${mark}`, a, b, 'select');
-    ta.setSelectionRange(a + mark.length, b + mark.length);
-  }
-  ta.dispatchEvent(new Event('input'));
-}
-
-function autosize() {
-  const ta = els.composer;
-  ta.style.height = 'auto';
-  // 화면이 숨겨져 있으면 scrollHeight가 0이라 높이를 건드리지 않는다 (min-height가 한 줄을 보장)
-  if (ta.scrollHeight > 0) ta.style.height = `${Math.min(ta.scrollHeight, window.innerHeight * 0.4)}px`;
-  els.send.disabled = !ta.value.trim();
-  updatePreview();
-}
-
-// 타이핑 중 실시간 미리보기: 서식 기호가 하나라도 있을 때만 입력창 위에 보여준다
-function updatePreview() {
-  const text = els.composer.value;
-  const blocks = text.trim() ? parseMarkdown(text) : [];
-  const show = hasFormatting(blocks);
-  const wasHidden = els.preview.hidden;
-  if (show) {
-    els.previewBody.innerHTML = '';
-    for (const block of blocks) els.previewBody.append(renderBlock(block));
-  }
-  els.preview.hidden = !show;
-  if (wasHidden !== !show && stickToBottom) scrollToBottom();
+function refreshComposer() {
+  els.send.disabled = !els.composer.value.trim();
+  if (stickToBottom) scrollToBottom(); // 입력창 높이가 바뀌어도 최근 메모가 보이게
 }
 
 // ---------- 공용 UI: 팝오버 / 다이얼로그 / 토스트
@@ -746,7 +701,7 @@ function enterApp() {
   showScreen('app');
   showPanel('note');
   renderAll();
-  autosize();
+  refreshComposer();
   scrollToBottom();
   syncer.run();
 }
@@ -864,26 +819,7 @@ function bind() {
     els.banner.hidden = true;
   });
 
-  els.composer.addEventListener('input', autosize);
-  els.composer.addEventListener('keydown', (e) => {
-    if (e.isComposing) return;
-    if (e.key === 'Enter' && !e.shiftKey && isWide()) {
-      e.preventDefault();
-      submitComposer();
-      return;
-    }
-    if (e.key === 'Enter') {
-      // 줄바꿈: 목록 줄이면 마커를 이어 쓰고, 마커만 있는 빈 항목이면 마커를 지운다
-      if (continueList()) e.preventDefault();
-      return;
-    }
-    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
-      const wrap = { b: '**', i: '_', e: '`' }[e.key.toLowerCase()];
-      if (wrap) {
-        e.preventDefault();
-        wrapSelection(wrap);
-      }
-    }
+  els.composer.element.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && editingEntryId) cancelEdit();
   });
   els.send.addEventListener('click', submitComposer);
@@ -915,7 +851,7 @@ function bind() {
 
 function boot() {
   bind();
-  autosize();
+  refreshComposer();
   if (state.code) {
     ensureNote();
     currentNoteId = homeNoteId(state);

@@ -82,3 +82,32 @@ test('hasFormatting은 평문·줄바꿈만 있으면 false', () => {
   assert.equal(hasFormatting(parseMarkdown('- 목록')), true);
   assert.equal(hasFormatting(parseMarkdown('https://a.b')), true);
 });
+
+import { tokenizeMarkdown, tokenizeInline } from '../src/core/markdown.js';
+
+const join = (lines) => lines.map((l) => l.tokens.map((t) => t.text).join('')).join('\n');
+
+test('토큰화는 원문을 한 글자도 바꾸지 않는다', () => {
+  const src = '# 제목\n- [x] **굵게** 끝\n> 인용 `코드` https://a.b/c\n```\nraw **x**\n```\n평문 \\*별\\* _기울임_ [링크](https://x.y)';
+  assert.equal(join(tokenizeMarkdown(src)), src);
+});
+
+test('토큰 클래스: 기호는 mk, 내용은 서식 클래스', () => {
+  const t = tokenizeInline('**굵게** `코드`');
+  assert.deepEqual(t.map((x) => [x.text, x.classes.join(' ')]), [
+    ['**', 'mk strong'], ['굵게', 'strong'], ['**', 'mk strong'], [' ', ''], ['`', 'mk code'], ['코드', 'code'], ['`', 'mk code'],
+  ]);
+});
+
+test('줄 종류: 제목·목록·체크·인용·코드 블록', () => {
+  const lines = tokenizeMarkdown('## 제목\n- [ ] 할 일\n1. 번호\n> 인용\n```\ncode\n```');
+  assert.deepEqual(lines.map((l) => l.cls), ['h2', 'list', 'list', 'quote', 'fence', 'codeblock', 'fence']);
+  assert.equal(lines[1].tokens[0].classes[0], 'bullet');
+  assert.equal(lines[1].tokens[1].classes[0], 'task');
+});
+
+test('중첩: 굵게 안의 기울임은 두 클래스를 가진다', () => {
+  const t = tokenizeInline('**a _b_ c**');
+  const b = t.find((x) => x.text === 'b');
+  assert.deepEqual(b.classes, ['strong', 'em']);
+});

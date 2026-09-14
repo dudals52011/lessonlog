@@ -199,3 +199,133 @@ export function plainText(blocks) {
     .map((b) => (b.type === 'code' ? b.text : b.type === 'list' ? b.items.map((it) => inline(it.children)).join('\n') : inline(b.children)))
     .join('\n');
 }
+
+// ---------- 편집 중 라이브 서식용 토큰화
+// 원문을 한 글자도 바꾸지 않고 [{ text, classes }] 조각으로 나눈다. 조각을 이어 붙이면 원문과 같다.
+// 기호(**, `, - 등)는 'mk' 클래스로 흐리게 두고, 감싸인 글자에 strong/em/del/code 등을 입힌다.
+
+/** 텍스트 → 줄 배열 [{ cls, tokens: [{ text, classes }] }]. 줄 사이 '\n'은 호출 쪽에서 넣는다. */
+export function tokenizeMarkdown(text) {
+  const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const out = [];
+  let inFence = false;
+  for (const line of lines) {
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      out.push({ cls: 'fence', tokens: [{ text: line, classes: ['mk'] }] });
+      continue;
+    }
+    if (inFence) {
+      out.push({ cls: 'codeblock', tokens: [{ text: line, classes: ['code'] }] });
+      continue;
+    }
+    const h = line.match(/^(#{1,3})(\s+)(.*)$/);
+    if (h) {
+      out.push({ cls: `h${h[1].length}`, tokens: [{ text: h[1] + h[2], classes: ['mk'] }, ...tokenizeInline(h[3])] });
+      continue;
+    }
+    const q = line.match(/^(>\s?)(.*)$/);
+    if (q) {
+      out.push({ cls: 'quote', tokens: [{ text: q[1], classes: ['mk'] }, ...tokenizeInline(q[2])] });
+      continue;
+    }
+    const li = line.match(/^(\s*)([-*+]|\d+[.)])(\s+)(\[[ xX]\]\s+)?(.*)$/);
+    if (li) {
+      const tokens = [{ text: li[1] + li[2] + li[3], classes: ['bullet'] }];
+      if (li[4]) tokens.push({ text: li[4], classes: [/x/i.test(li[4]) ? 'task done' : 'task'] });
+      const rest = tokenizeInline(li[5]);
+      if (li[4] && /x/i.test(li[4])) for (const t of rest) t.classes.push('done');
+      out.push({ cls: 'list', tokens: [...tokens, ...rest] });
+      continue;
+    }
+    out.push({ cls: '', tokens: tokenizeInline(line) });
+  }
+  return out;
+}
+
+const INLINE_DELIMS = [['**', 'strong'], ['__', 'strong'], ['~~', 'del'], ['*', 'em'], ['_', 'em']];
+
+/** 한 줄의 인라인 서식 → 조각 배열 */
+export function tokenizeInline(text, ctx = []) {
+  const out = [];
+  let buf = '';
+  const push = (t, ...cls) => {
+    if (t) out.push({ text: t, classes: [...ctx, ...cls].filter(Boolean) });
+  };
+  const flush = () => {
+    push(buf);
+    buf = '';
+  };
+  const s = text;
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '\\' && i + 1 < s.length && /[\\`*_~\[\]()#>-]/.test(s[i + 1])) {
+      flush();
+      push('\\', 'mk');
+      push(s[i + 1]);
+      i += 2;
+      continue;
+    }
+    if (ch === '`') {
+      const end = s.indexOf('`', i + 1);
+      if (end > i + 1) {
+        flush();
+        push('`', 'mk', 'code');
+        push(s.slice(i + 1, end), 'code');
+        push('`', 'mk', 'code');
+        i = end + 1;
+        continue;
+      }
+    }
+    if (ch === '[') {
+      const m = s.slice(i).match(/^\[([^\]\n]+)\]\(([^)\s]+)\)/);
+      if (m) {
+        flush();
+        push('[', 'mk');
+        out.push(...tokenizeInline(m[1], [...ctx, 'link']));
+        push('](' + m[2] + ')', 'mk');
+        i += m[0].length;
+        continue;
+      }
+    }
+    if (ch === 'h' && s.startsWith('http', i) && (i === 0 || !/[\w/]/.test(s[i - 1]))) {
+      const m = s.slice(i).match(URL_RE);
+      if (m && m.index === 0) {
+        flush();
+        push(m[0], 'url');
+        i += m[0].length;
+        continue;
+      }
+    }
+    const w = matchInlineDelim(s, i);
+    if (w) {
+      flush();
+      push(w.d, 'mk', w.type);
+      out.push(...tokenizeInline(w.inner, [...ctx, w.type]));
+      push(w.d, 'mk', w.type);
+      i = w.end;
+      continue;
+    }
+    buf += ch;
+    i++;
+  }
+  flush();
+  return out;
+}
+
+function matchInlineDelim(s, i) {
+  for (const [d, type] of INLINE_DELIMS) {
+    if (!s.startsWith(d, i)) continue;
+    const start = i + d.length;
+    if (start >= s.length || /\s/.test(s[start])) continue;
+    if (d === '_' && i > 0 && /\w/.test(s[i - 1])) continue;
+    let end = s.indexOf(d, start);
+    while (end !== -1 && (/\s/.test(s[end - 1]) || (d === '_' && end + 1 < s.length && /\w/.test(s[end + 1])))) {
+      end = s.indexOf(d, end + 1);
+    }
+    if (end === -1 || end === start) continue;
+    return { d, type, inner: s.slice(start, end), end: end + d.length };
+  }
+  return null;
+}
