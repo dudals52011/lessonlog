@@ -5,7 +5,7 @@ import { createSyncer, api } from './sync.js';
 import { generateCode, normalizeCode } from './core/code.js';
 import { noteToMarkdown } from './core/copy.js';
 import { formatLogDay, formatShortDay, formatTime, groupByDay } from './core/dates.js';
-import { parseMarkdown, continueListMarker } from './core/markdown.js';
+import { parseMarkdown, continueListMarker, hasFormatting } from './core/markdown.js';
 import {
   addNote, openNote, setTitle, deleteNote, addEntry, editEntry, deleteEntry, restoreEntry,
   liveNotes, liveEntries, notePeriod, homeNoteId, displayTitle, pendingCount, exportData,
@@ -35,6 +35,7 @@ const els = {
   noteMenu: $('btn-note-menu'), statusLine: $('status-line'), banner: $('install-banner'),
   entries: $('entries'), composer: $('composer'), composerWrap: $('composer-wrap'), send: $('btn-send'),
   sendLabel: $('btn-send').querySelector('.send-label'), editBar: $('edit-bar'), editLabel: $('edit-label'),
+  preview: $('preview'), previewBody: $('preview-body'),
   popover: $('popover'), scrim: $('scrim'), dialog: $('dialog'),
   toast: $('toast'), toastText: $('toast-text'), toastAction: $('toast-action'),
 };
@@ -537,6 +538,21 @@ function autosize() {
   // 화면이 숨겨져 있으면 scrollHeight가 0이라 높이를 건드리지 않는다 (min-height가 한 줄을 보장)
   if (ta.scrollHeight > 0) ta.style.height = `${Math.min(ta.scrollHeight, window.innerHeight * 0.4)}px`;
   els.send.disabled = !ta.value.trim();
+  updatePreview();
+}
+
+// 타이핑 중 실시간 미리보기: 서식 기호가 하나라도 있을 때만 입력창 위에 보여준다
+function updatePreview() {
+  const text = els.composer.value;
+  const blocks = text.trim() ? parseMarkdown(text) : [];
+  const show = hasFormatting(blocks);
+  const wasHidden = els.preview.hidden;
+  if (show) {
+    els.previewBody.innerHTML = '';
+    for (const block of blocks) els.previewBody.append(renderBlock(block));
+  }
+  els.preview.hidden = !show;
+  if (wasHidden !== !show && stickToBottom) scrollToBottom();
 }
 
 // ---------- 공용 UI: 팝오버 / 다이얼로그 / 토스트

@@ -186,6 +186,12 @@ export function continueListMarker(line) {
   return { marker: `${indent}${next} ${task ? '[ ] ' : ''}` };
 }
 
+/** 서식이 하나라도 있으면 true (미리보기를 띄울지 판단) */
+export function hasFormatting(blocks) {
+  const inlineHas = (nodes) => nodes.some((n) => n.type !== 'text' && n.type !== 'br');
+  return blocks.some((b) => b.type !== 'paragraph' || inlineHas(b.children));
+}
+
 /** 렌더링 없이 평문만 필요할 때 (목록 미리보기 등) */
 export function plainText(blocks) {
   const inline = (nodes) => nodes.map((n) => (n.type === 'text' || n.type === 'code' ? n.text : n.type === 'br' ? '\n' : inline(n.children || []))).join('');

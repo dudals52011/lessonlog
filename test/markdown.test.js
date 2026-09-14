@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMarkdown, parseInline, continueListMarker, plainText } from '../src/core/markdown.js';
+import { parseMarkdown, parseInline, continueListMarker, plainText, hasFormatting } from '../src/core/markdown.js';
 
 test('평문은 문단 하나', () => {
   const b = parseMarkdown('그냥 한 줄');
@@ -74,4 +74,11 @@ test('목록 마커 이어 쓰기', () => {
 
 test('plainText는 서식을 벗긴다', () => {
   assert.equal(plainText(parseMarkdown('**a** `b`\n- c')), 'a b\nc');
+});
+
+test('hasFormatting은 평문·줄바꿈만 있으면 false', () => {
+  assert.equal(hasFormatting(parseMarkdown('그냥 글\n둘째 줄')), false);
+  assert.equal(hasFormatting(parseMarkdown('**굵게**')), true);
+  assert.equal(hasFormatting(parseMarkdown('- 목록')), true);
+  assert.equal(hasFormatting(parseMarkdown('https://a.b')), true);
 });
