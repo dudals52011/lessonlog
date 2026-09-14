@@ -4,7 +4,7 @@ import { loadState, saveState, clearState } from './store.js';
 import { createSyncer, api } from './sync.js';
 import { generateCode, normalizeCode } from './core/code.js';
 import { noteToMarkdown } from './core/copy.js';
-import { formatDayHeader, formatShortDay, formatTime, groupByDay } from './core/dates.js';
+import { formatLogDay, formatShortDay, formatTime, groupByDay } from './core/dates.js';
 import {
   addNote, openNote, setTitle, deleteNote, addEntry, editEntry, deleteEntry, restoreEntry,
   liveNotes, liveEntries, notePeriod, homeNoteId, displayTitle, pendingCount, exportData,
@@ -29,8 +29,10 @@ const els = {
   },
   noteList: $('note-list'),
   title: $('note-title'), titleInput: $('note-title-input'), titleDone: $('btn-title-done'),
+  main: $('main'),
   noteMenu: $('btn-note-menu'), statusLine: $('status-line'), banner: $('install-banner'),
-  entries: $('entries'), composer: $('composer'), send: $('btn-send'), editBar: $('edit-bar'),
+  entries: $('entries'), composer: $('composer'), composerWrap: $('composer-wrap'), send: $('btn-send'),
+  sendLabel: $('btn-send').querySelector('.send-label'), editBar: $('edit-bar'), editLabel: $('edit-label'),
   popover: $('popover'), scrim: $('scrim'), dialog: $('dialog'),
   toast: $('toast'), toastText: $('toast-text'), toastAction: $('toast-action'),
 };
@@ -87,7 +89,7 @@ function renderNoteList() {
   for (const n of notes) {
     const entries = liveEntries(state, n.id);
     const p = notePeriod(entries);
-    const period = p ? (p.from === p.to ? formatShortDay(p.from) : `${formatShortDay(p.from)} ~ ${formatShortDay(p.to)}`) : formatShortDay(n.created_at);
+    const period = p ? (p.from === p.to ? formatShortDay(p.from) : `${formatShortDay(p.from)}–${formatShortDay(p.to)}`) : formatShortDay(n.created_at);
     const li = document.createElement('li');
     if (n.id === currentNoteId) li.className = 'current';
     const btn = document.createElement('button');
@@ -97,7 +99,7 @@ function renderNoteList() {
     name.textContent = displayTitle(n);
     const meta = document.createElement('div');
     meta.className = 'm';
-    meta.textContent = `${period} · 메모 ${entries.length}개${n.id === currentNoteId ? ' · 지금 열려 있음' : ''}`;
+    meta.textContent = `${period} · 메모 ${entries.length}개`;
     btn.append(name, meta);
     btn.addEventListener('click', () => selectNote(n.id));
     li.append(btn);
@@ -121,15 +123,27 @@ function renderNote() {
   if (!entries.length) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
-    hint.innerHTML = '아직 메모가 없어요<br><span class="small">위 제목을 탭하면 이름을 붙일 수 있고,<br>아래에 바로 적어도 돼요</span>';
+    hint.innerHTML = '<div class="tag">── EMPTY ──</div><div class="h">아직 메모가 없어요</div><div class="s">위 제목을 탭하면 이름을 붙일 수 있고,<br>아래에 바로 적어도 돼요</div>';
     inner.append(hint);
   }
   for (const group of groupByDay(entries)) {
     const head = document.createElement('div');
     head.className = 'day-head';
-    head.textContent = formatDayHeader(group.key);
+    const d = document.createElement('span');
+    d.className = 'd';
+    // 모바일 '── 09-11 THU', 데스크톱 '── 2026-09-11 THU' (연도는 CSS로 토글)
+    const yr = document.createElement('span');
+    yr.className = 'yr';
+    yr.textContent = formatLogDay(group.key, { year: true }).slice(0, 5);
+    d.append('── ', yr, formatLogDay(group.key));
+    const rule = document.createElement('span');
+    rule.className = 'rule';
+    head.append(d, rule);
     inner.append(head);
-    for (const e of group.entries) inner.append(renderEntry(e));
+    const list = document.createElement('div');
+    list.className = 'day-group';
+    for (const e of group.entries) list.append(renderEntry(e));
+    inner.append(list);
   }
   els.entries.append(inner);
   if (wasAtBottom) els.entries.scrollTop = els.entries.scrollHeight;
@@ -163,7 +177,7 @@ function renderEntry(e) {
     pressTimer = setTimeout(() => {
       pressTimer = null;
       if (navigator.vibrate) navigator.vibrate(10);
-      openEntryMenu(e.id, row, ev.touches?.[0]);
+      openEntryMenu(e.id, row);
     }, 500);
   };
   const cancel = () => {
@@ -176,16 +190,23 @@ function renderEntry(e) {
   row.addEventListener('touchcancel', cancel);
   row.addEventListener('contextmenu', (ev) => {
     ev.preventDefault();
-    openEntryMenu(e.id, row, ev);
+    openEntryMenu(e.id, row);
   });
   return row;
 }
 
 function renderStatus(status) {
   const offlinePending = !navigator.onLine && pendingCount(state) > 0;
-  if (offlinePending || status === 'offline') els.statusLine.textContent = '동기화 대기 중';
-  else if (status === 'error') els.statusLine.textContent = '동기화 실패 · 다시 시도 중';
-  else els.statusLine.textContent = '';
+  els.statusLine.classList.remove('pending', 'error');
+  if (offlinePending || status === 'offline') {
+    els.statusLine.textContent = '동기화 대기 중';
+    els.statusLine.classList.add('pending');
+  } else if (status === 'error') {
+    els.statusLine.textContent = '동기화 실패 · 다시 시도 중';
+    els.statusLine.classList.add('error');
+  } else {
+    els.statusLine.textContent = '';
+  }
 }
 
 function isStandalone() {
@@ -224,6 +245,7 @@ function startTitleEdit() {
   els.titleInput.hidden = false;
   els.noteMenu.hidden = true;
   els.titleDone.hidden = false;
+  els.main.classList.add('editing-title');
   els.titleInput.focus();
   els.titleInput.select();
 }
@@ -235,15 +257,17 @@ function finishTitleEdit(commitValue = true) {
   els.titleInput.hidden = true;
   els.noteMenu.hidden = false;
   els.titleDone.hidden = true;
+  els.main.classList.remove('editing-title');
   commit();
 }
 
 function openNoteMenu() {
   const entries = liveEntries(state, currentNoteId);
+  els.noteMenu.classList.add('open');
   openPopover(els.noteMenu, [
     { label: '노트 복사', disabled: entries.length === 0, onClick: copyNote },
     { label: '노트 삭제', danger: true, onClick: confirmDeleteNote },
-  ]);
+  ], { scrim: true, onClose: () => els.noteMenu.classList.remove('open') });
 }
 
 async function copyNote() {
@@ -295,6 +319,7 @@ function confirmDeleteNote() {
     title: `"${displayTitle(note)}"를 삭제할까요?`,
     body: `메모 ${count}개가 함께 삭제되고 되돌릴 수 없어요.`,
     actions: [
+      { label: '취소' },
       { label: '삭제', danger: true, onClick: () => {
         deleteNote(state, currentNoteId, nowIso());
         currentNoteId = homeNoteId(state);
@@ -302,23 +327,25 @@ function confirmDeleteNote() {
         cancelEdit();
         commit();
       } },
-      { label: '취소' },
     ],
   });
 }
 
 // ---------- 항목 조작
 
-function openEntryMenu(id, anchor, point) {
+function openEntryMenu(id, anchor) {
   selectedEntryId = id;
   renderNote();
   const el = els.entries.querySelector(`.entry[data-id="${id}"]`) || anchor;
   openPopover(el, [
     { label: '수정', onClick: () => startEdit(id) },
     { label: '삭제', danger: true, onClick: () => removeEntry(id) },
-  ], point, () => {
-    selectedEntryId = null;
-    renderNote();
+  ], {
+    row: true,
+    onClose: () => {
+      selectedEntryId = null;
+      renderNote();
+    },
   });
 }
 
@@ -328,7 +355,10 @@ function startEdit(id) {
   editingEntryId = id;
   selectedEntryId = null;
   els.composer.value = e.body;
+  els.editLabel.textContent = `EDIT · ${formatTime(e.created_at)} 수정 중`;
   els.editBar.hidden = false;
+  els.sendLabel.textContent = 'SAVE';
+  els.composerWrap.classList.add('editing');
   autosize();
   renderNote();
   els.composer.focus();
@@ -339,9 +369,15 @@ function cancelEdit() {
   if (!editingEntryId) return;
   editingEntryId = null;
   els.composer.value = '';
-  els.editBar.hidden = true;
+  exitEditMode();
   autosize();
   renderNote();
+}
+
+function exitEditMode() {
+  els.editBar.hidden = true;
+  els.sendLabel.textContent = 'SEND';
+  els.composerWrap.classList.remove('editing');
 }
 
 function submitComposer() {
@@ -350,7 +386,7 @@ function submitComposer() {
   if (editingEntryId) {
     editEntry(state, editingEntryId, text, nowIso());
     editingEntryId = null;
-    els.editBar.hidden = true;
+    exitEditMode();
   } else {
     addEntry(state, currentNoteId, text, nowIso());
   }
@@ -377,7 +413,8 @@ function removeEntry(id) {
 function autosize() {
   const ta = els.composer;
   ta.style.height = 'auto';
-  ta.style.height = `${Math.min(ta.scrollHeight, window.innerHeight * 0.4)}px`;
+  // 화면이 숨겨져 있으면 scrollHeight가 0이라 높이를 건드리지 않는다 (min-height가 한 줄을 보장)
+  if (ta.scrollHeight > 0) ta.style.height = `${Math.min(ta.scrollHeight, window.innerHeight * 0.4)}px`;
   els.send.disabled = !ta.value.trim();
 }
 
@@ -385,9 +422,10 @@ function autosize() {
 
 let popoverCleanup = null;
 
-function openPopover(anchor, items, point, onClose) {
+function openPopover(anchor, items, { row = false, scrim = false, onClose } = {}) {
   closePopover();
   const pop = els.popover;
+  pop.classList.toggle('row', row);
   pop.innerHTML = '';
   for (const it of items) {
     const b = document.createElement('button');
@@ -402,13 +440,18 @@ function openPopover(anchor, items, point, onClose) {
     pop.append(b);
   }
   pop.hidden = false;
+  if (scrim) {
+    els.scrim.classList.add('light');
+    els.scrim.hidden = false;
+  }
   const r = anchor.getBoundingClientRect();
   const w = pop.offsetWidth;
   const h = pop.offsetHeight;
-  let x = point ? point.clientX : r.right - w;
-  let y = point ? point.clientY : r.bottom + 4;
+  // 항목 메뉴: 항목 오른쪽 끝에 맞춰 아래로 6px. 노트 메뉴: ⋯ 아래 오른쪽 정렬, 화면 가장자리 12px.
+  let x = row ? r.right - w + 4 : Math.min(r.right - w, window.innerWidth - w - 12);
+  let y = r.bottom + (row ? 6 : 8);
   x = Math.max(8, Math.min(x, window.innerWidth - w - 8));
-  if (y + h > window.innerHeight - 8) y = Math.max(8, r.top - h - 4);
+  if (y + h > window.innerHeight - 8) y = Math.max(8, r.top - h - 6);
   pop.style.left = `${x}px`;
   pop.style.top = `${y}px`;
 
@@ -425,6 +468,10 @@ function openPopover(anchor, items, point, onClose) {
   popoverCleanup = () => {
     document.removeEventListener('pointerdown', onDown, true);
     document.removeEventListener('keydown', onKey);
+    if (scrim) {
+      els.scrim.hidden = true;
+      els.scrim.classList.remove('light');
+    }
     onClose?.();
   };
 }
@@ -499,7 +546,9 @@ async function startNew() {
     issuedCode = generateCode();
     const created = await api.createWorkspace(issuedCode);
     if (!created) throw new Error('코드 충돌');
-    $('issue-code').textContent = issuedCode;
+    $('issue-code').innerHTML = '';
+    const groups = issuedCode.split('-');
+    $('issue-code').append(groups.slice(0, 3).join('-'), document.createElement('br'), groups.slice(3).join('-'));
     showScreen('issue');
   } catch (err) {
     showToast(err.offline ? '인터넷 연결을 확인해 주세요' : '시작에 실패했어요. 잠시 후 다시 시도해 주세요');
@@ -560,6 +609,7 @@ function enterApp() {
   showScreen('app');
   showPanel('note');
   renderAll();
+  autosize();
   els.entries.scrollTop = els.entries.scrollHeight;
   syncer.run();
 }
@@ -574,7 +624,8 @@ function openSettings() {
 }
 
 function renderSettingsCode() {
-  $('settings-code').textContent = codeVisible ? state.code : '●●●●-●●●●-●●●●-●●●●-●●●●-●●●●';
+  $('settings-code').textContent = codeVisible ? state.code : '●●●●-●●●●-●●●●-····';
+  $('settings-code').classList.toggle('visible', codeVisible);
   $('btn-code-toggle').textContent = codeVisible ? '가리기' : '보기';
 }
 
@@ -600,11 +651,11 @@ function confirmDisconnect() {
       ? `아직 동기화되지 않은 메모 ${n}개가 사라져요. 온라인 상태에서 다시 시도하는 걸 권해요.`
       : '이 기기의 메모가 지워지고 시작 화면으로 돌아가요. 서버의 데이터는 그대로 남아요.',
     actions: [
+      { label: '취소' },
       { label: '연결 해제', danger: true, onClick: () => {
         clearState();
         location.reload();
       } },
-      { label: '취소' },
     ],
   });
 }
@@ -615,11 +666,15 @@ function bind() {
   $('btn-start-new').addEventListener('click', startNew);
   $('btn-start-connect').addEventListener('click', () => {
     $('enter-input').value = '';
+    $('enter-input').classList.remove('invalid');
     $('enter-error').hidden = true;
     showScreen('enter');
     $('enter-input').focus();
   });
-  $('btn-issue-back').addEventListener('click', () => showScreen('start'));
+  $('btn-enter-new').addEventListener('click', () => {
+    showScreen('start');
+    startNew();
+  });
   $('btn-issue-copy').addEventListener('click', async () => {
     showToast((await writeClipboard(issuedCode)) ? '코드를 복사했어요' : '복사가 막혀 있어요. 코드를 직접 적어 두세요');
   });
@@ -635,6 +690,7 @@ function bind() {
   });
 
   $('btn-settings').addEventListener('click', openSettings);
+  $('btn-settings-wide').addEventListener('click', openSettings);
   $('btn-settings-back').addEventListener('click', () => {
     showScreen('app');
     renderAll();

@@ -5,6 +5,12 @@
 - 앱: https://dudals52011.github.io/lessonlog/
 - 설계 문서: Obsidian `PM 역량 강화/프로젝트/레슨런 메모앱/`
 
+## 디자인
+
+- Claude Design 핸드오프의 컨셉 1c "터미널/로그"를 그대로 구현. 다크 기본, 모바일 390×844 · 데스크톱 1440×900 기준.
+- 색은 `styles.css`의 `:root` 토큰(배경 `#14161A` · 본문 `#DDE3EA` · 강조 `#7FD1A4` · 위험 `#F08A8A`)만 쓴다.
+- 폰트: JetBrains Mono(시각·날짜·바 제목) + Noto Sans KR(본문). Google Fonts에서 불러오고, 오프라인이면 시스템 폰트로 대체.
+
 ## 구조
 
 ```

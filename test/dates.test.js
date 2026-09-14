@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayKey, formatDayHeader, formatCopyDay, formatShortDay, formatTime, groupByDay } from '../src/core/dates.js';
+import { dayKey, formatDayHeader, formatCopyDay, formatShortDay, formatLogDay, formatTime, groupByDay } from '../src/core/dates.js';
 
 // 로컬 시간 기준 ISO 문자열을 만든다 (테스트가 타임존에 흔들리지 않게)
 function local(y, m, d, hh = 0, mm = 0) {
@@ -15,7 +15,14 @@ test('dayKey는 로컬 날짜 기준', () => {
 test('날짜 표기 세 가지', () => {
   assert.equal(formatDayHeader('2026-09-11'), '9월 11일 (금)');
   assert.equal(formatCopyDay('2026-09-11'), '2026-09-11 (금)');
-  assert.equal(formatShortDay('2026-09-11'), '9/11');
+  assert.equal(formatShortDay('2026-09-11'), '09/11');
+  assert.equal(formatShortDay('2026-09-01'), '09/01');
+});
+
+test('로그 구분선 날짜는 영문 요일 대문자', () => {
+  assert.equal(formatLogDay('2026-09-11'), '09-11 FRI');
+  assert.equal(formatLogDay('2026-09-11', { year: true }), '2026-09-11 FRI');
+  assert.equal(formatLogDay('2026-08-30'), '08-30 SUN');
 });
 
 test('시각은 두 자리 HH:MM', () => {

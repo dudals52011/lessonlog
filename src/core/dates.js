@@ -1,5 +1,6 @@
 // 날짜·시각 표기. 모두 기기 로컬 시간 기준.
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -35,10 +36,17 @@ export function formatCopyDay(key) {
   return `${dayKey(key)} (${weekday(key)})`;
 }
 
-/** 목록용 짧은 날짜: '9/11' */
+/** 목록용 짧은 날짜: '09/11' */
 export function formatShortDay(key) {
   const d = toDate(key);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+}
+
+/** 로그 구분선용 날짜: '09-11 THU' (year: true면 '2026-09-11 THU') */
+export function formatLogDay(key, { year = false } = {}) {
+  const d = toDate(key);
+  const md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `${year ? `${d.getFullYear()}-` : ''}${md} ${WEEKDAYS_EN[d.getDay()]}`;
 }
 
 /** 'HH:MM' */
