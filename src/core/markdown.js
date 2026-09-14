@@ -232,9 +232,9 @@ export function tokenizeMarkdown(text) {
     const li = line.match(/^(\s*)([-*+]|\d+[.)])(\s+)(\[[ xX]\]\s+)?(.*)$/);
     if (li) {
       const tokens = [{ text: li[1] + li[2] + li[3], classes: ['bullet'] }];
-      if (li[4]) tokens.push({ text: li[4], classes: [/x/i.test(li[4]) ? 'task done' : 'task'] });
+      if (li[4]) tokens.push({ text: li[4], classes: [/x/i.test(li[4]) ? 'task task-done' : 'task'] });
       const rest = tokenizeInline(li[5]);
-      if (li[4] && /x/i.test(li[4])) for (const t of rest) t.classes.push('done');
+      if (li[4] && /x/i.test(li[4])) for (const t of rest) t.classes.push('task-done');
       out.push({ cls: 'list', tokens: [...tokens, ...rest] });
       continue;
     }
