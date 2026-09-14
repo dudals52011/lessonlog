@@ -20,6 +20,7 @@ let editingEntryId = null;
 let selectedEntryId = null;
 let issuedCode = null;
 let codeVisible = false;
+let stickToBottom = true; // 목록이 맨 아래에 있으면 키보드·회전으로 높이가 바뀌어도 맨 아래를 유지
 
 const els = {
   body: document.body,
@@ -116,10 +117,10 @@ function renderNote() {
   els.banner.hidden = state.bannerDismissed || isWide() || isStandalone();
 
   const entries = liveEntries(state, currentNoteId);
-  const wasAtBottom = els.entries.scrollHeight - els.entries.scrollTop - els.entries.clientHeight < 40;
+  const wasAtBottom = stickToBottom;
   els.entries.innerHTML = '';
   const inner = document.createElement('div');
-  inner.className = 'entries-inner';
+  inner.className = 'entries-inner' + (entries.length ? '' : ' empty');
   if (!entries.length) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
@@ -146,7 +147,12 @@ function renderNote() {
     inner.append(list);
   }
   els.entries.append(inner);
-  if (wasAtBottom) els.entries.scrollTop = els.entries.scrollHeight;
+  if (wasAtBottom) scrollToBottom();
+}
+
+function scrollToBottom() {
+  els.entries.scrollTop = els.entries.scrollHeight;
+  stickToBottom = true;
 }
 
 function renderEntry(e) {
@@ -230,7 +236,7 @@ function selectNote(id) {
   cancelEdit();
   showPanel('note');
   commit();
-  els.entries.scrollTop = els.entries.scrollHeight;
+  scrollToBottom();
 }
 
 function newNote() {
@@ -393,7 +399,7 @@ function submitComposer() {
   els.composer.value = '';
   autosize();
   commit();
-  els.entries.scrollTop = els.entries.scrollHeight;
+  scrollToBottom();
   els.composer.focus();
 }
 
@@ -610,7 +616,7 @@ function enterApp() {
   showPanel('note');
   renderAll();
   autosize();
-  els.entries.scrollTop = els.entries.scrollHeight;
+  scrollToBottom();
   syncer.run();
 }
 
@@ -744,9 +750,16 @@ function bind() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && state.code) syncer.run();
   });
+  els.entries.addEventListener('scroll', () => {
+    stickToBottom = els.entries.scrollHeight - els.entries.scrollTop - els.entries.clientHeight < 40;
+  }, { passive: true });
+  // 키보드가 올라오거나 화면이 회전해 높이가 바뀌면, 맨 아래를 보고 있던 경우 그대로 맨 아래를 유지
   window.addEventListener('resize', () => {
     if (isWide()) showPanel('note');
     renderNote();
+  });
+  window.visualViewport?.addEventListener('resize', () => {
+    if (stickToBottom) scrollToBottom();
   });
   setInterval(() => {
     if (state.code && document.visibilityState === 'visible') syncer.run();

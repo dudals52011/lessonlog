@@ -247,8 +247,10 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
 .banner .icon-btn { width: 24px; height: 24px; font-size: 14px; color: var(--fg-60); }
 
 /* ---- 항목 목록 (로그) */
-.entries { flex: 1; overflow: auto; padding: 0 16px 12px; -webkit-overflow-scrolling: touch; }
-.entries-inner { max-width: var(--content-max); margin: 0 auto; }
+.entries { flex: 1; overflow: auto; padding: 0 16px 12px; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+/* 최근 메모가 입력창 바로 위에 붙도록 아래 기준 정렬. margin-top:auto는 overflow 스크롤과 충돌하지 않는다. */
+.entries-inner { width: 100%; max-width: var(--content-max); margin: auto auto 0; }
+.entries-inner.empty { margin: auto; }
 .day-head { display: flex; align-items: center; gap: 8px; padding: 24px 0 10px; }
 .day-head:first-child { padding-top: 18px; }
 .day-head .d {
@@ -268,7 +270,7 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
 .entry .more { display: none; flex: none; width: 24px; height: 24px; border-radius: 5px; font-size: 15px; color: var(--fg); }
 .empty-hint {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-  min-height: 60vh; padding: 0 24px; text-align: center;
+  padding: 0 24px; text-align: center;
 }
 .empty-hint .tag { font-family: var(--mono); font-size: 13px; font-weight: 500; line-height: 1; color: rgba(127, 209, 164, .6); letter-spacing: .06em; }
 .empty-hint .h { font-size: 16px; font-weight: 500; line-height: 1.4; }
