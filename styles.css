@@ -145,7 +145,7 @@ h1, h2, h3, p { margin: 0; }
 .enter-desc { font-size: 14px; line-height: 1.7; color: var(--fg-70); text-wrap: pretty; }
 .enter-field { display: flex; flex-direction: column; gap: 8px; }
 .code-input {
-  width: 100%; font-family: var(--mono); font-size: 15px; font-weight: 500; line-height: 1.3; letter-spacing: .04em;
+  width: 100%; font-family: var(--mono); font-size: 16px; font-weight: 500; line-height: 1.3; letter-spacing: .04em;
   text-align: center; padding: 16px 14px; border-radius: 10px;
   background: var(--field); border: 1px solid rgba(221, 227, 234, .18); outline: none; color: var(--fg);
 }
@@ -216,14 +216,14 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
 .main.editing-title .composer { opacity: .5; pointer-events: none; }
 .title-wrap { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .title {
-  max-width: 100%; font-family: var(--mono); font-size: 15px; font-weight: 500; line-height: 1.3;
+  max-width: 100%; font-family: var(--mono); font-size: 16px; font-weight: 500; line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .title:active { opacity: .7; }
 .title.untitled { color: var(--fg-40); }
 .title-input {
   width: auto; min-width: 6ch; max-width: 100%; field-sizing: content; text-align: center;
-  font-family: var(--mono); font-size: 15px; font-weight: 500; line-height: 1.3;
+  font-family: var(--mono); font-size: 16px; font-weight: 500; line-height: 1.3;
   border: 0; border-bottom: 1.5px solid var(--accent); padding: 0 0 1px; outline: none; background: transparent; caret-color: var(--accent);
 }
 .status-line {
@@ -264,8 +264,8 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
   padding: 6px 10px; margin: -6px -10px; border-radius: 6px;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
-.entry .t { flex: none; font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--accent); font-variant-numeric: tabular-nums; }
-.entry .b { flex: 1; min-width: 0; font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; text-wrap: pretty; }
+.entry .t { flex: none; font-family: var(--mono); font-size: 13.5px; line-height: 1.6; color: var(--accent); font-variant-numeric: tabular-nums; }
+.entry .b { flex: 1; min-width: 0; font-size: 15.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; text-wrap: pretty; }
 .entry.selected { background: var(--accent-wash); margin: 0 -10px; }
 .entry .more { display: none; flex: none; width: 24px; height: 24px; border-radius: 5px; font-size: 15px; color: var(--fg); }
 .empty-hint {
@@ -273,7 +273,7 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
   padding: 0 24px; text-align: center;
 }
 .empty-hint .tag { font-family: var(--mono); font-size: 13px; font-weight: 500; line-height: 1; color: rgba(127, 209, 164, .6); letter-spacing: .06em; }
-.empty-hint .h { font-size: 16px; font-weight: 500; line-height: 1.4; }
+.empty-hint .h { font-size: 17px; font-weight: 500; line-height: 1.4; }
 .empty-hint .s { font-size: 13px; line-height: 1.7; color: var(--fg-60); text-wrap: pretty; }
 
 /* ---- 입력창 (01·04·07) */
@@ -290,10 +290,10 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
   background: var(--field); border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 10px 10px 12px;
 }
 .composer-box:focus-within, .composer.editing .composer-box { border-color: var(--accent); }
-.composer-box .prompt { flex: none; font-family: var(--mono); font-size: 15px; font-weight: 500; line-height: 1; color: var(--accent); }
+.composer-box .prompt { flex: none; font-family: var(--mono); font-size: 16px; font-weight: 500; line-height: 1; color: var(--accent); }
 #composer {
-  flex: 1; min-width: 0; min-height: 20px; resize: none; max-height: 40vh; padding: 0; margin: 0; border: 0; outline: none;
-  background: transparent; font-size: 15px; line-height: 1.3; color: var(--fg); caret-color: var(--accent);
+  flex: 1; min-width: 0; min-height: 21px; resize: none; max-height: 40vh; padding: 0; margin: 0; border: 0; outline: none;
+  background: transparent; font-size: 16px; line-height: 1.3; color: var(--fg); caret-color: var(--accent);
 }
 #composer::placeholder { color: var(--fg-40); }
 .send {
@@ -328,7 +328,7 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
 .dialog #dialog-body { margin-top: 8px; font-size: 13.5px; line-height: 1.6; color: var(--fg-65); text-wrap: pretty; }
 .dialog #dialog-body:empty { display: none; }
 .dialog #dialog-body textarea {
-  width: 100%; height: 40vh; font-family: var(--mono); font-size: 12px; line-height: 1.5;
+  width: 100%; height: 40vh; font-family: var(--mono); font-size: 13px; line-height: 1.5;
   background: var(--field); color: var(--fg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px; outline: none;
 }
 .dialog-actions { display: flex; gap: 8px; margin-top: 22px; }
@@ -361,7 +361,7 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
     width: 440px; gap: 22px; padding: 36px 36px 32px;
     background: var(--field); border: 1px solid rgba(221, 227, 234, .14); border-radius: 14px;
   }
-  .enter-card .code-input { background: var(--bg); font-size: 16px; }
+  .enter-card .code-input { background: var(--bg); }
   .enter-card .btn-primary { padding: 15px; font-size: 15px; }
 
   /* 시작·발급·설정도 데스크톱에선 가운데 카드 폭으로 */
@@ -404,8 +404,8 @@ body[data-panel="list"] .sidebar { display: flex; position: fixed; inset: 0; z-i
   .day-head .d .yr { display: inline; }
   .day-group { gap: 6px; }
   .entry { gap: 16px; padding: 6px 12px; margin: 0 -12px; -webkit-user-select: text; user-select: text; }
-  .entry .t { font-size: 13.5px; line-height: 1.65; }
-  .entry .b { font-size: 15px; line-height: 1.65; }
+  .entry .t { font-size: 14px; line-height: 1.65; }
+  .entry .b { font-size: 16px; line-height: 1.65; }
   .entry:hover { background: rgba(221, 227, 234, .06); }
   .entry.selected { background: var(--accent-wash); margin: 0 -12px; }
   .entry .more { display: inline-flex; align-items: center; justify-content: center; visibility: hidden; }
