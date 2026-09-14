@@ -1,7 +1,7 @@
 {
-  "name": "레슨런",
-  "short_name": "레슨런",
-  "description": "일과 중 레슨런을 빠르게 적고 주 1회 통째로 복사해 AI와 회고하는 메모앱",
+  "name": "TiL",
+  "short_name": "TiL",
+  "description": "Today I Learned — 일과 중 배운 것을 빠르게 적고 주 1회 통째로 복사해 AI와 회고하는 메모앱",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

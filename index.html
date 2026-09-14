@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-  <title>레슨런</title>
+  <title>TiL</title>
   <meta name="theme-color" content="#14161a" />
   <meta name="color-scheme" content="dark" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <meta name="apple-mobile-web-app-title" content="레슨런" />
+  <meta name="apple-mobile-web-app-title" content="TiL" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" href="icons/icon-192.png" />
@@ -24,8 +24,8 @@
   <section class="screen screen-start" id="screen-start" hidden>
     <div class="start-hero">
       <div class="prompt-mark">&gt; _</div>
-      <h1 class="brand">레슨런</h1>
-      <p class="start-desc">일과 중 떠오른 레슨런을 폰에서 한 줄씩 빠르게 적고, 시각과 함께 노트 한 장에 쌓아 두었다가, 주 1회 통째로 복사해 AI와 회고하는 개인용 메모앱.</p>
+      <h1 class="brand">TiL</h1>
+      <p class="start-desc">Today I Learned. 일과 중 배운 것을 폰에서 한 줄씩 빠르게 적고, 시각과 함께 노트 한 장에 쌓아 두었다가, 주 1회 통째로 복사해 AI와 회고하는 개인용 메모앱.</p>
     </div>
     <div class="start-actions">
       <button class="btn btn-primary btn-lg" id="btn-start-new">새로 시작</button>
@@ -51,7 +51,7 @@
   <section class="screen screen-form screen-enter" id="screen-enter" hidden>
     <header class="bar bar-center narrow-only"><button class="icon-btn" id="btn-enter-back" aria-label="뒤로">←</button><h2>기존 코드로 연결</h2><span class="icon-spacer"></span></header>
     <div class="enter-card">
-      <div class="prompt-mark wide-only">&gt; _&nbsp;&nbsp;레슨런</div>
+      <div class="prompt-mark wide-only">&gt; _&nbsp;&nbsp;TiL</div>
       <div class="enter-head wide-only">
         <h2>기존 코드로 연결</h2>
         <p class="enter-desc">다른 기기의 설정에서 동기화 코드를 복사해 붙여넣어 주세요.</p>
@@ -138,7 +138,7 @@
         <div class="composer-row">
           <div class="composer-box">
             <span class="prompt">&gt;</span>
-            <textarea id="composer" rows="1" placeholder="메모 입력..." enterkeyhint="send"></textarea>
+            <textarea id="composer" rows="1" placeholder="메모 입력... (마크다운 지원)" enterkeyhint="send"></textarea>
             <button class="send" id="btn-send" aria-label="전송"><span class="send-label">SEND</span><span class="send-key wide-only"> ⏎</span></button>
           </div>
         </div>

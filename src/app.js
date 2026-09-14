@@ -5,6 +5,7 @@ import { createSyncer, api } from './sync.js';
 import { generateCode, normalizeCode } from './core/code.js';
 import { noteToMarkdown } from './core/copy.js';
 import { formatLogDay, formatShortDay, formatTime, groupByDay } from './core/dates.js';
+import { parseMarkdown, continueListMarker } from './core/markdown.js';
 import {
   addNote, openNote, setTitle, deleteNote, addEntry, editEntry, deleteEntry, restoreEntry,
   liveNotes, liveEntries, notePeriod, homeNoteId, displayTitle, pendingCount, exportData,
@@ -164,7 +165,7 @@ function renderEntry(e) {
   t.textContent = formatTime(e.created_at);
   const b = document.createElement('span');
   b.className = 'b';
-  b.textContent = e.body;
+  b.append(renderMarkdown(e.body));
   const more = document.createElement('button');
   more.className = 'icon-btn more';
   more.type = 'button';
@@ -199,6 +200,87 @@ function renderEntry(e) {
     openEntryMenu(e.id, row);
   });
   return row;
+}
+
+// ---------- 마크다운 → DOM (텍스트는 전부 textContent로 넣어 HTML 주입이 없다)
+
+function renderMarkdown(text) {
+  const frag = document.createDocumentFragment();
+  for (const block of parseMarkdown(text)) frag.append(renderBlock(block));
+  return frag;
+}
+
+function renderBlock(block) {
+  switch (block.type) {
+    case 'heading': {
+      const h = document.createElement(`h${block.level + 3}`); // h4~h6: 문서 구조상 앱 제목보다 낮게
+      h.className = `md-h md-h${block.level}`;
+      h.append(renderInlines(block.children));
+      return h;
+    }
+    case 'quote': {
+      const q = document.createElement('blockquote');
+      q.className = 'md-quote';
+      q.append(renderInlines(block.children));
+      return q;
+    }
+    case 'code': {
+      const pre = document.createElement('pre');
+      pre.className = 'md-pre';
+      pre.textContent = block.text;
+      return pre;
+    }
+    case 'list': {
+      const list = document.createElement(block.ordered ? 'ol' : 'ul');
+      list.className = 'md-list';
+      for (const it of block.items) {
+        const li = document.createElement('li');
+        if (it.checked !== null) {
+          li.className = 'md-task' + (it.checked ? ' md-done' : '');
+          const box = document.createElement('span');
+          box.className = 'md-box';
+          box.textContent = it.checked ? '[x]' : '[ ]';
+          li.append(box, ' ');
+        }
+        li.append(renderInlines(it.children));
+        list.append(li);
+      }
+      return list;
+    }
+    default: {
+      const p = document.createElement('p');
+      p.className = 'md-p';
+      p.append(renderInlines(block.children));
+      return p;
+    }
+  }
+}
+
+function renderInlines(nodes) {
+  const frag = document.createDocumentFragment();
+  for (const n of nodes) {
+    if (n.type === 'text') frag.append(n.text);
+    else if (n.type === 'br') frag.append(document.createElement('br'));
+    else if (n.type === 'code') {
+      const c = document.createElement('code');
+      c.className = 'md-code';
+      c.textContent = n.text;
+      frag.append(c);
+    } else if (n.type === 'link') {
+      const a = document.createElement('a');
+      a.className = 'md-link';
+      a.href = n.href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.append(renderInlines(n.children));
+      frag.append(a);
+    } else {
+      const el = document.createElement(n.type === 'strong' ? 'strong' : n.type === 'em' ? 'em' : 's');
+      el.append(renderInlines(n.children));
+      frag.append(el);
+    }
+  }
+  return frag;
 }
 
 function renderStatus(status) {
@@ -414,6 +496,39 @@ function removeEntry(id) {
       commit();
     },
   });
+}
+
+function continueList() {
+  const ta = els.composer;
+  if (ta.selectionStart !== ta.selectionEnd) return false;
+  const pos = ta.selectionStart;
+  const lineStart = ta.value.lastIndexOf('\n', pos - 1) + 1;
+  const line = ta.value.slice(lineStart, pos);
+  const c = continueListMarker(line);
+  if (!c) return false;
+  if (c.clear) {
+    ta.setRangeText('', lineStart, pos, 'end');
+  } else {
+    ta.setRangeText(`\n${c.marker}`, pos, pos, 'end');
+  }
+  ta.dispatchEvent(new Event('input'));
+  return true;
+}
+
+function wrapSelection(mark) {
+  const ta = els.composer;
+  const { selectionStart: a, selectionEnd: b, value } = ta;
+  const inner = value.slice(a, b);
+  const before = value.slice(Math.max(0, a - mark.length), a);
+  const after = value.slice(b, b + mark.length);
+  if (before === mark && after === mark) {
+    // 이미 감싸져 있으면 벗긴다
+    ta.setRangeText(inner, a - mark.length, b + mark.length, 'select');
+  } else {
+    ta.setRangeText(`${mark}${inner}${mark}`, a, b, 'select');
+    ta.setSelectionRange(a + mark.length, b + mark.length);
+  }
+  ta.dispatchEvent(new Event('input'));
 }
 
 function autosize() {
@@ -642,7 +757,7 @@ function exportJson() {
   const a = document.createElement('a');
   const d = new Date();
   a.href = url;
-  a.download = `lessonlog-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
+  a.download = `til-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
   document.body.append(a);
   a.click();
   a.remove();
@@ -735,9 +850,23 @@ function bind() {
 
   els.composer.addEventListener('input', autosize);
   els.composer.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && isWide()) {
+    if (e.isComposing) return;
+    if (e.key === 'Enter' && !e.shiftKey && isWide()) {
       e.preventDefault();
       submitComposer();
+      return;
+    }
+    if (e.key === 'Enter') {
+      // 줄바꿈: 목록 줄이면 마커를 이어 쓰고, 마커만 있는 빈 항목이면 마커를 지운다
+      if (continueList()) e.preventDefault();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const wrap = { b: '**', i: '_', e: '`' }[e.key.toLowerCase()];
+      if (wrap) {
+        e.preventDefault();
+        wrapSelection(wrap);
+      }
     }
     if (e.key === 'Escape' && editingEntryId) cancelEdit();
   });

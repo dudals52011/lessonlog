@@ -1,5 +1,5 @@
 // 앱 셸 캐시. 배포 때 CACHE 버전을 올리면 이전 캐시가 정리된다.
-const CACHE = 'lessonlog-v5';
+const CACHE = 'lessonlog-v6';
 const SHELL = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const SHELL = [
   './src/core/code.js',
   './src/core/model.js',
   './src/core/copy.js',
+  './src/core/markdown.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',

@@ -1,6 +1,6 @@
-# 레슨런 (lessonlog)
+# TiL — Today I Learned (lessonlog)
 
-일과 중 떠오른 레슨런을 폰에서 한 줄씩 빠르게 적고, 시각과 함께 노트 한 장에 쌓아 두었다가, 주 1회 통째로 복사해 AI와 회고하는 개인용 PWA 메모앱.
+일과 중 배운 것을 폰에서 한 줄씩 빠르게 적고, 시각과 함께 노트 한 장에 쌓아 두었다가, 주 1회 통째로 복사해 AI와 회고하는 개인용 PWA 메모앱.
 
 - 앱: https://dudals52011.github.io/lessonlog/
 - 설계 문서: Obsidian `PM 역량 강화/프로젝트/레슨런 메모앱/`
@@ -11,12 +11,18 @@
 - 색은 `styles.css`의 `:root` 토큰(배경 `#14161A` · 본문 `#DDE3EA` · 강조 `#7FD1A4` · 위험 `#F08A8A`)만 쓴다.
 - 폰트: JetBrains Mono(시각·날짜·바 제목) + Noto Sans KR(본문). Google Fonts에서 불러오고, 오프라인이면 시스템 폰트로 대체.
 
+## 메모 서식
+
+- 메모 본문은 마크다운으로 렌더링한다: `**굵게**` `_기울임_` `~~취소~~` `` `코드` `` `[링크](url)`, URL 자동 링크, `- 목록`, `1. 번호`, `- [ ] 할 일`, `# 제목`, `> 인용`, ```` ``` ```` 코드 블록.
+- 입력창에서 목록 줄에서 줄바꿈하면 마커가 이어지고, 빈 항목에서 한 번 더 줄바꿈하면 마커가 지워진다. 데스크톱은 Cmd/Ctrl+B·I·E로 굵게·기울임·코드.
+- 파서는 `src/core/markdown.js`, DOM 렌더링은 `src/app.js`. 텍스트는 전부 textContent로 넣어 HTML 주입이 없다.
+
 ## 구조
 
 ```
 index.html / styles.css        화면
 src/app.js                     화면 컨트롤러 (DOM, 이벤트)
-src/core/{dates,code,model,copy}.js   순수 로직 (테스트 대상)
+src/core/{dates,code,model,copy,markdown}.js   순수 로직 (테스트 대상)
 src/store.js                   localStorage 저장
 src/sync.js                    Supabase RPC + 동기화 루프
 sw.js / manifest.webmanifest   PWA
