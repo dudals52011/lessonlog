@@ -158,7 +158,10 @@ export function createEditor(el, { onInput, onSubmit, submitOnEnter } = {}) {
 
   // ---------- 이벤트
 
-  el.addEventListener('compositionstart', () => { composing = true; });
+  el.addEventListener('compositionstart', () => {
+    composing = true;
+    el.classList.remove('is-empty'); // 조합 중에는 다시 그리지 않으므로 플레이스홀더만 먼저 걷어낸다
+  });
   el.addEventListener('compositionend', () => {
     composing = false;
     syncFromDom();
@@ -195,7 +198,10 @@ export function createEditor(el, { onInput, onSubmit, submitOnEnter } = {}) {
   });
 
   el.addEventListener('input', (e) => {
-    if (composing || e.isComposing) return;
+    if (composing || e.isComposing) {
+      el.classList.toggle('is-empty', serialize(el) === '');
+      return;
+    }
     syncFromDom();
   });
 
