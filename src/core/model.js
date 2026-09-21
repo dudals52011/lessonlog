@@ -49,11 +49,11 @@ export function displayTitle(note) {
   return note?.title?.trim() ? note.title.trim() : UNTITLED;
 }
 
-/** 살아 있는 노트, 마지막 연 순서 */
+/** 살아 있는 노트, 최근에 만든 순서. 선택한다고 순서가 바뀌지 않도록 만든 시각으로만 정렬한다 */
 export function liveNotes(state) {
   return Object.values(state.notes)
     .filter((n) => !n.deleted_at)
-    .sort((a, b) => (a.last_opened_at < b.last_opened_at ? 1 : -1));
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? -1 : 1));
 }
 
 /** 살아 있는 항목(노트가 살아 있어야 함), 적은 시각 순 */
@@ -72,9 +72,14 @@ export function notePeriod(entries) {
   return { from: keys[0], to: keys[keys.length - 1] };
 }
 
+/** 앱을 열 때 이어서 볼 노트: 마지막으로 연 노트 */
 export function homeNoteId(state) {
-  const notes = liveNotes(state);
-  return notes.length ? notes[0].id : null;
+  let best = null;
+  for (const n of Object.values(state.notes)) {
+    if (n.deleted_at) continue;
+    if (!best || n.last_opened_at > best.last_opened_at) best = n;
+  }
+  return best ? best.id : null;
 }
 
 function markPending(state, kind, id) {
