@@ -709,8 +709,6 @@ function enterApp() {
 
 // ---------- 활동 대시보드 (잔디)
 
-const WEEKDAY_LABELS = ['', '월', '', '수', '', '금', ''];
-
 function allLiveEntries() {
   const ids = new Set(liveNotes(state).map((n) => n.id));
   return Object.values(state.entries).filter((e) => !e.deleted_at && ids.has(e.note_id));
@@ -719,9 +717,6 @@ function allLiveEntries() {
 function openStats() {
   renderStats();
   showScreen('stats');
-  // 최근 주가 오른쪽 끝이라 처음엔 오른쪽으로 스크롤해 둔다
-  const sc = $('hm-scroll');
-  sc.scrollLeft = sc.scrollWidth;
 }
 
 function renderStats() {
@@ -733,39 +728,25 @@ function renderStats() {
   $('st-longest').textContent = sm.longest;
   $('st-week').textContent = `최근 7일 메모 ${sm.thisWeek}개`;
 
-  const hm = heatmap(sm.counts, { weeks: isWide() ? 52 : 26 });
+  // 최근 5주(약 한 달)를 달력처럼: 열 = 요일(일~토), 행 = 주
+  const hm = heatmap(sm.counts, { weeks: 5 });
   $('hm-range').textContent = `${formatShortDay(hm.from)} – ${formatShortDay(hm.to)}`;
   const grid = $('hm');
   grid.innerHTML = '';
-  grid.style.setProperty('--hm-cols', hm.weeks.length);
-
-  // 1행: 월 라벨, 1열: 요일 라벨
-  for (const m of hm.months) {
-    const l = document.createElement('div');
-    l.className = 'hm-month';
-    l.textContent = m.label;
-    l.style.gridColumn = String(m.col + 2);
-    l.style.gridRow = '1';
-    grid.append(l);
-  }
-  WEEKDAY_LABELS.forEach((label, d) => {
-    if (!label) return;
+  ['일', '월', '화', '수', '목', '금', '토'].forEach((label) => {
     const l = document.createElement('div');
     l.className = 'hm-day';
     l.textContent = label;
-    l.style.gridColumn = '1';
-    l.style.gridRow = String(d + 2);
     grid.append(l);
   });
-  hm.weeks.forEach((col, w) => {
-    col.forEach((cell, d) => {
+  hm.weeks.forEach((col) => {
+    col.forEach((cell) => {
       const c = document.createElement('button');
       c.type = 'button';
       c.className = `hm-cell l${cell.level}${cell.future ? ' future' : ''}`;
-      c.style.gridColumn = String(w + 2);
-      c.style.gridRow = String(d + 2);
       c.dataset.key = cell.key;
-      c.dataset.count = cell.count;
+      const day = Number(cell.key.slice(8, 10));
+      c.textContent = day === 1 ? `${Number(cell.key.slice(5, 7))}/1` : String(day);
       c.disabled = cell.future;
       const label = `${formatDayHeaderKo(cell.key)} · 메모 ${cell.count}개`;
       c.setAttribute('aria-label', label);
@@ -886,7 +867,6 @@ function bind() {
     showScreen('app');
     renderAll();
   });
-  $('hm-scroll').addEventListener('scroll', hideHeatTip, { passive: true });
   $('btn-settings-back').addEventListener('click', () => {
     showScreen('app');
     renderAll();
