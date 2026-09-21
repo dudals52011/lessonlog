@@ -6,6 +6,7 @@ import { generateCode, normalizeCode } from './core/code.js';
 import { noteToMarkdown } from './core/copy.js';
 import { formatLogDay, formatShortDay, formatTime, groupByDay } from './core/dates.js';
 import { parseMarkdown } from './core/markdown.js';
+import { summary, heatmap } from './core/stats.js';
 import { createEditor } from './editor.js';
 import {
   addNote, openNote, setTitle, deleteNote, addEntry, editEntry, deleteEntry, restoreEntry,
@@ -28,7 +29,7 @@ const els = {
   body: document.body,
   screens: {
     start: $('screen-start'), issue: $('screen-issue'), enter: $('screen-enter'),
-    settings: $('screen-settings'), app: $('screen-app'),
+    settings: $('screen-settings'), stats: $('screen-stats'), app: $('screen-app'),
   },
   noteList: $('note-list'),
   title: $('note-title'), titleInput: $('note-title-input'), titleDone: $('btn-title-done'),
@@ -706,6 +707,101 @@ function enterApp() {
   syncer.run();
 }
 
+// ---------- 활동 대시보드 (잔디)
+
+const WEEKDAY_LABELS = ['', '월', '', '수', '', '금', ''];
+
+function allLiveEntries() {
+  const ids = new Set(liveNotes(state).map((n) => n.id));
+  return Object.values(state.entries).filter((e) => !e.deleted_at && ids.has(e.note_id));
+}
+
+function openStats() {
+  renderStats();
+  showScreen('stats');
+  // 최근 주가 오른쪽 끝이라 처음엔 오른쪽으로 스크롤해 둔다
+  const sc = $('hm-scroll');
+  sc.scrollLeft = sc.scrollWidth;
+}
+
+function renderStats() {
+  const entries = allLiveEntries();
+  const sm = summary(entries);
+  $('st-total').textContent = sm.total;
+  $('st-days').textContent = sm.activeDays;
+  $('st-current').textContent = sm.current;
+  $('st-longest').textContent = sm.longest;
+  $('st-week').textContent = `최근 7일 메모 ${sm.thisWeek}개`;
+
+  const hm = heatmap(sm.counts, { weeks: isWide() ? 52 : 26 });
+  $('hm-range').textContent = `${formatShortDay(hm.from)} – ${formatShortDay(hm.to)}`;
+  const grid = $('hm');
+  grid.innerHTML = '';
+  grid.style.setProperty('--hm-cols', hm.weeks.length);
+
+  // 1행: 월 라벨, 1열: 요일 라벨
+  for (const m of hm.months) {
+    const l = document.createElement('div');
+    l.className = 'hm-month';
+    l.textContent = m.label;
+    l.style.gridColumn = String(m.col + 2);
+    l.style.gridRow = '1';
+    grid.append(l);
+  }
+  WEEKDAY_LABELS.forEach((label, d) => {
+    if (!label) return;
+    const l = document.createElement('div');
+    l.className = 'hm-day';
+    l.textContent = label;
+    l.style.gridColumn = '1';
+    l.style.gridRow = String(d + 2);
+    grid.append(l);
+  });
+  hm.weeks.forEach((col, w) => {
+    col.forEach((cell, d) => {
+      const c = document.createElement('button');
+      c.type = 'button';
+      c.className = `hm-cell l${cell.level}${cell.future ? ' future' : ''}`;
+      c.style.gridColumn = String(w + 2);
+      c.style.gridRow = String(d + 2);
+      c.dataset.key = cell.key;
+      c.dataset.count = cell.count;
+      c.disabled = cell.future;
+      const label = `${formatDayHeaderKo(cell.key)} · 메모 ${cell.count}개`;
+      c.setAttribute('aria-label', label);
+      c.addEventListener('click', () => showHeatTip(c, label));
+      c.addEventListener('pointerenter', (ev) => { if (ev.pointerType === 'mouse') showHeatTip(c, label); });
+      c.addEventListener('pointerleave', (ev) => { if (ev.pointerType === 'mouse') hideHeatTip(); });
+      grid.append(c);
+    });
+  });
+}
+
+function formatDayHeaderKo(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return `${y}년 ${m}월 ${d}일 (${['일', '월', '화', '수', '목', '금', '토'][dt.getDay()]})`;
+}
+
+function showHeatTip(cell, text) {
+  const tip = $('hm-tip');
+  tip.textContent = text;
+  tip.hidden = false;
+  $('hm-caption').textContent = text;
+  for (const el of document.querySelectorAll('.hm-cell.active')) el.classList.remove('active');
+  cell.classList.add('active');
+  const r = cell.getBoundingClientRect();
+  const w = tip.offsetWidth;
+  const x = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8));
+  tip.style.left = `${x}px`;
+  tip.style.top = `${r.top - tip.offsetHeight - 8}px`;
+}
+
+function hideHeatTip() {
+  $('hm-tip').hidden = true;
+  for (const el of document.querySelectorAll('.hm-cell.active')) el.classList.remove('active');
+}
+
 // ---------- 설정
 
 function openSettings() {
@@ -783,6 +879,14 @@ function bind() {
 
   $('btn-settings').addEventListener('click', openSettings);
   $('btn-settings-wide').addEventListener('click', openSettings);
+  $('btn-stats').addEventListener('click', openStats);
+  $('btn-stats-wide').addEventListener('click', openStats);
+  $('btn-stats-back').addEventListener('click', () => {
+    hideHeatTip();
+    showScreen('app');
+    renderAll();
+  });
+  $('hm-scroll').addEventListener('scroll', hideHeatTip, { passive: true });
   $('btn-settings-back').addEventListener('click', () => {
     showScreen('app');
     renderAll();

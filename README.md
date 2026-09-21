@@ -17,12 +17,18 @@
 - 입력창(`src/editor.js`)은 타이핑하는 대로 서식이 입혀지는 라이브 에디터. 기호는 흐리게 남고 글자에 굵게·기울임·코드 등이 바로 적용된다. 목록 줄에서 줄바꿈하면 마커가 이어지고, 빈 항목에서 한 번 더 줄바꿈하면 마커가 지워진다. Cmd/Ctrl+B·I·E로 굵게·기울임·코드, Cmd/Ctrl+Z·Shift+Z로 실행 취소·다시 실행.
 - 파서는 `src/core/markdown.js`, DOM 렌더링은 `src/app.js`. 텍스트는 전부 textContent로 넣어 HTML 주입이 없다.
 
+## 활동 대시보드
+
+- 노트 목록의 ▦(모바일) 또는 사이드바 하단 "활동"(데스크톱)에서 연다.
+- 메모 전체·기록한 날·현재 연속·최장 연속 타일과, 깃허브 잔디식 날짜별 히트맵(모바일 26주, 데스크톱 52주). 칸 색은 그날 메모 수를 최대치 기준 4단계로 나눈 강조색 밝기.
+- 통계는 `src/core/stats.js`(순수 함수, 테스트 있음), 그리기는 `src/app.js`.
+
 ## 구조
 
 ```
 index.html / styles.css        화면
 src/app.js                     화면 컨트롤러 (DOM, 이벤트)
-src/core/{dates,code,model,copy,markdown}.js   순수 로직 (테스트 대상)
+src/core/{dates,code,model,copy,markdown,stats}.js   순수 로직 (테스트 대상)
 src/store.js                   localStorage 저장
 src/sync.js                    Supabase RPC + 동기화 루프
 sw.js / manifest.webmanifest   PWA

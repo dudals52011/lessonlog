@@ -95,6 +95,32 @@
     </div>
   </section>
 
+  <!-- 활동 대시보드 (잔디) -->
+  <section class="screen screen-form" id="screen-stats" hidden>
+    <header class="bar bar-center"><button class="icon-btn" id="btn-stats-back" aria-label="뒤로">←</button><h2>활동</h2><span class="icon-spacer"></span></header>
+    <div class="stats">
+      <section class="stats-group">
+        <div class="section-label">── SUMMARY</div>
+        <div class="tiles">
+          <div class="tile"><div class="tile-v" id="st-total">0</div><div class="tile-k">메모 전체</div></div>
+          <div class="tile"><div class="tile-v" id="st-days">0</div><div class="tile-k">기록한 날</div></div>
+          <div class="tile"><div class="tile-v" id="st-current">0</div><div class="tile-k">현재 연속 (일)</div></div>
+          <div class="tile"><div class="tile-v" id="st-longest">0</div><div class="tile-k">최장 연속 (일)</div></div>
+        </div>
+        <p class="stats-note" id="st-week"></p>
+      </section>
+      <section class="stats-group">
+        <div class="section-label">── HEATMAP <span class="section-sub" id="hm-range"></span></div>
+        <div class="hm-scroll" id="hm-scroll"><div class="hm" id="hm" role="grid" aria-label="날짜별 메모 수"></div></div>
+        <div class="hm-foot">
+          <span class="hm-caption" id="hm-caption">칸을 누르면 날짜와 개수가 보여요</span>
+          <span class="hm-legend" aria-hidden="true">적음 <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> 많음</span>
+        </div>
+      </section>
+    </div>
+    <div class="hm-tip" id="hm-tip" hidden></div>
+  </section>
+
   <!-- 앱 본체 -->
   <div class="app" id="screen-app" hidden>
     <!-- 08 · 15 · 노트 목록 -->
@@ -102,12 +128,18 @@
       <header class="bar bar-center sidebar-bar">
         <button class="icon-btn narrow-only" id="btn-list-close" aria-label="닫기">✕</button>
         <h2>노트</h2>
-        <button class="icon-btn narrow-only" id="btn-settings" aria-label="설정">⚙</button>
+        <span class="sidebar-bar-actions narrow-only">
+          <button class="icon-btn" id="btn-stats" aria-label="활동">▦</button>
+          <button class="icon-btn" id="btn-settings" aria-label="설정">⚙</button>
+        </span>
       </header>
       <button class="new-note" id="btn-new-note"><span class="plus">+</span><span>새 노트</span></button>
       <div class="sidebar-rule"></div>
       <ul class="note-list" id="note-list"></ul>
-      <button class="sidebar-settings wide-only" id="btn-settings-wide"><span class="gear">⚙</span>설정</button>
+      <div class="sidebar-foot wide-only">
+        <button class="sidebar-settings" id="btn-stats-wide"><span class="gear">▦</span>활동</button>
+        <button class="sidebar-settings" id="btn-settings-wide"><span class="gear">⚙</span>설정</button>
+      </div>
     </aside>
 
     <!-- 01~07 · 노트 화면 -->
