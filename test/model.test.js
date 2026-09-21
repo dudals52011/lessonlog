@@ -16,14 +16,18 @@ test('새 노트는 제목 없음, 홈이 된다', () => {
   assert.deepEqual(s.pending.notes, [n.id]);
 });
 
-test('노트 목록은 만든 순서(최신 위)이고, 열어도 순서가 바뀌지 않는다', () => {
+test('노트 목록은 마지막으로 메모를 적은 순서(최신 위)이고, 열기만 해서는 바뀌지 않는다', () => {
   const s = emptyState();
   const a = addNote(s, T(1));
   const b = addNote(s, T(2));
-  assert.deepEqual(liveNotes(s).map((n) => n.id), [b.id, a.id]);
+  assert.deepEqual(liveNotes(s).map((n) => n.id), [b.id, a.id]); // 메모 없으면 만든 순
   openNote(s, a.id, T(3));
   assert.deepEqual(liveNotes(s).map((n) => n.id), [b.id, a.id]);
   assert.equal(homeNoteId(s), a.id); // 홈은 마지막으로 연 노트
+  addEntry(s, a.id, '메모', T(4));
+  assert.deepEqual(liveNotes(s).map((n) => n.id), [a.id, b.id]); // a에 적으면 a가 위로
+  addEntry(s, b.id, '메모', T(5));
+  assert.deepEqual(liveNotes(s).map((n) => n.id), [b.id, a.id]);
 });
 
 test('제목: 공백만 있으면 null로, 같은 값이면 변경 없음', () => {

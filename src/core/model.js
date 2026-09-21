@@ -49,11 +49,26 @@ export function displayTitle(note) {
   return note?.title?.trim() ? note.title.trim() : UNTITLED;
 }
 
-/** 살아 있는 노트, 최근에 만든 순서. 선택한다고 순서가 바뀌지 않도록 만든 시각으로만 정렬한다 */
+/** 노트별 마지막 메모 시각. 메모가 없으면 노트 만든 시각 */
+export function lastActivityAt(state, note) {
+  let last = note.created_at;
+  for (const e of Object.values(state.entries)) {
+    if (e.note_id === note.id && !e.deleted_at && e.created_at > last) last = e.created_at;
+  }
+  return last;
+}
+
+/** 살아 있는 노트, 마지막으로 메모를 적은 순서(최신 위). 노트를 열기만 해서는 순서가 바뀌지 않는다 */
 export function liveNotes(state) {
+  const key = new Map();
   return Object.values(state.notes)
     .filter((n) => !n.deleted_at)
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? -1 : 1));
+    .map((n) => (key.set(n.id, lastActivityAt(state, n)), n))
+    .sort((a, b) => {
+      const ka = key.get(a.id);
+      const kb = key.get(b.id);
+      return ka < kb ? 1 : ka > kb ? -1 : a.id < b.id ? -1 : 1;
+    });
 }
 
 /** 살아 있는 항목(노트가 살아 있어야 함), 적은 시각 순 */
